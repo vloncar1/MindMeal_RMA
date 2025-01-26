@@ -1,0 +1,15 @@
+// app global css in SCSS form
+
+$body-font-size: var(--q-theme-font-size, 20px);
+
+body {
+  font-size: $body-font-size;
+}
+
+h1 {
+  color: #1976d2;
+}
+
+.q-page {
+  font-size: $body-font-size;
+}
