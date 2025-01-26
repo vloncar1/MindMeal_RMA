@@ -91,7 +91,7 @@ function addToCart(plan) {
   width: 200px;
   margin-right: 30px;
   height: auto;
-  border: 7px solid #0066ff;
+  border: 7px solid #66cb44;
   border-radius: 10px;
   padding: 5px;
 }

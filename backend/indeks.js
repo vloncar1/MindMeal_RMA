@@ -10,7 +10,7 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Database configuration
+// Konfiguracija baze podataka
 const db = mysql.createConnection({
   host: "ucka.veleri.hr",
   user: "vmarcelja",
@@ -18,117 +18,120 @@ const db = mysql.createConnection({
   database: "vmarcelja",
 });
 
-// Connect to the database
+// Povezivanje s bazom podataka
 db.connect((err) => {
   if (err) {
-    console.error("Error connecting to the database:", err);
+    console.error("Greška prilikom spajanja na bazu podataka:", err);
   } else {
-    console.log("Successfully connected to the database!");
+    console.log("Uspješno spojeno na bazu podataka!");
   }
 });
 
-// Route for user registration
+// Ruta za registraciju korisnika
 app.post("/register", (req, res) => {
   const { username, password, role } = req.body;
 
   if (!username || !password || !role) {
-    return res.status(400).json({ error: "All fields are required!" });
+    return res.status(400).json({ error: "Sva polja su obavezna!" });
   }
 
   const query = "INSERT INTO korisnikrma (korime, lozinka, role) VALUES (?, ?, ?)";
   db.query(query, [username, password, role], (err, results) => {
     if (err) {
-      console.error("Error inserting into the database:", err);
-      return res.status(500).json({ error: "Server error." });
+      console.error("Greška prilikom unosa u bazu:", err);
+      return res.status(500).json({ error: "Greška na serveru." });
     }
-    res.status(201).json({ message: "User successfully registered!" });
+    res.status(201).json({ message: "Korisnik uspješno registriran!" });
   });
 });
 
-// Route for user login (this is the one you provided)
+// Ruta za prijavu korisnika
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ error: "All fields are required!" });
+    return res.status(400).json({ error: "Sva polja su obavezna!" });
   }
 
   const query = "SELECT * FROM korisnikrma WHERE korime = ? AND lozinka = ?";
   db.query(query, [username, password], (err, results) => {
     if (err) {
-      console.error("Error during user verification:", err);
-      return res.status(500).json({ error: "Server error." });
+      console.error("Greška prilikom provjere korisnika:", err);
+      return res.status(500).json({ error: "Greška na serveru." });
     }
 
     if (results.length > 0) {
-      const user = results[0];
-      res.json({
-        message: "Login successful!",
-        user: { id: user.id, korime: user.korime, role: user.role },
-      });
+      res.json({ message: "Prijava uspješna!", user: results[0] });
     } else {
-      res.status(401).json({ error: "Invalid username or password." });
+      res.status(401).json({ error: "Neispravno korisničko ime ili lozinka." });
     }
   });
 });
 
-// Route to save the selected plan
+// Ruta za spremanje odabranog plana u korisničku tablicu
 app.post("/savePlan", (req, res) => {
-  const { userId, planId } = req.body;
+    const { userId, planId } = req.body;
 
-  if (!userId || !planId) {
-    return res.status(400).json({ error: "User and plan are required!" });
-  }
-
-  const checkUserQuery = "SELECT * FROM korisnikrma WHERE id = ?";
-  db.query(checkUserQuery, [userId], (err, results) => {
-    if (err) {
-      console.error("Error checking user:", err);
-      return res.status(500).json({ error: "Server error." });
+    // Provjera ako su userId i planId poslani
+    if (!userId || !planId) {
+        return res.status(400).json({ error: "Korisnik i plan su obavezni!" });
     }
 
-    if (results.length === 0) {
-      return res.status(404).json({ error: "User not found." });
-    }
+    // Provjera ako korisnik postoji u bazi
+    const checkUserQuery = "SELECT * FROM korisnikrma WHERE id = ?";
+    db.query(checkUserQuery, [userId], (err, results) => {
+        if (err) {
+            console.error("Greška pri provjeri korisnika:", err);
+            return res.status(500).json({ error: "Greška na serveru." });
+        }
 
-    const query = "UPDATE korisnikrma SET plan_id = ? WHERE id = ?";
-    db.query(query, [planId, userId], (err, results) => {
-      if (err) {
-        console.error("Error saving plan:", err);
-        return res.status(500).json({ error: "Server error." });
-      }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Korisnik nije pronađen." });
+        }
 
-      console.log("Plan successfully saved for user ID:", userId);
-      res.status(200).json({ message: "Plan successfully saved!" });
+        // Ažuriranje plan_id u korisnikrma tablici
+        const query = "UPDATE korisnikrma SET plan_id = ? WHERE id = ?";
+        db.query(query, [planId, userId], (err, results) => {
+            if (err) {
+                console.error("Greška prilikom spremanja plana:", err);
+                return res.status(500).json({ error: "Greška na serveru." });
+            }
+
+            console.log("Plan uspješno spremljen za korisnika ID:", userId);
+            res.status(200).json({ message: "Plan uspješno spremljen!" });
+        });
     });
-  });
 });
 
-// Route to fetch a user's selected plan
+// Ruta za dohvat odabranog plana korisnika iz korisnikrma tablice
 app.get("/getUserPlan/:userId", (req, res) => {
-  const userId = req.params.userId;
+    const userId = req.params.userId;
 
-  if (!userId) {
-    return res.status(400).json({ error: "User ID is required!" });
-  }
-
-  const query = "SELECT plan_id FROM korisnikrma WHERE id = ?";
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error("Error fetching plan:", err);
-      return res.status(500).json({ error: "Server error." });
+    // Provjera ako je korisnički ID poslan
+    if (!userId) {
+        return res.status(400).json({ error: "Korisnički ID je obavezan!" });
     }
 
-    if (results.length > 0 && results[0].plan_id) {
-      const planId = results[0].plan_id;
-      res.json({ plan_id: planId });
-    } else {
-      res.status(404).json({ error: "User has no saved plan." });
-    }
-  });
+    // Dohvaćanje ID odabranog plana korisnika
+    const query = "SELECT plan_id FROM korisnikrma WHERE id = ?";
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error("Greška prilikom dohvaćanja plana:", err);
+            return res.status(500).json({ error: "Greška na serveru." });
+        }
+
+        if (results.length > 0 && results[0].plan_id) {
+            const planId = results[0].plan_id;
+
+            // Dohvat plana iz tablice korisnikrma (plan_id se povezuje sa zapisom)
+            res.json({ plan_id: planId });
+        } else {
+            res.status(404).json({ error: "Korisnik nema pohranjen plan." });
+        }
+    });
 });
 
-// Start the server
+// Pokretanje servera
 app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
+    console.log(`Server radi na http://localhost:${PORT}`);
 });

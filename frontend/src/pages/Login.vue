@@ -1,8 +1,9 @@
+
 <template>
   <q-page class="q-pa-md">
     <div v-if="!isLoggedIn">
       <h1>Prijava</h1>
-      <q-form @submit.prevent="handleLogin" class="q-gutter-md">
+      <q-form @submit="handleLogin" class="q-gutter-md">
         <q-input
           v-model="username"
           label="Korisničko ime"
@@ -36,7 +37,7 @@
           :options="plans"
           label="Odaberi plan"
           option-label="naziv"
-          option-value="id"
+          option-value="naziv"
           emit-value
           map-options
           @update:model-value="saveSelectedPlan"
@@ -67,25 +68,17 @@ const storedUser = $q.localStorage.getItem("loggedInUser");
 if (storedUser) {
   user.value = JSON.parse(storedUser);
   isLoggedIn.value = true;
-  // Redirect based on role
-  if (user.value.role === "Admin") {
-    window.location.href = "/admin";
-  }
 }
 
 // Dohvaćanje svih planova prilikom prijave
-const fetchPlans = async () => {
-  try {
-    const response = await axios.get("http://localhost:3000/getPlans");
-    plans.value = response.data.plans;
-  } catch (error) {
-    console.error("Greška pri dohvaćanju planova:", error);
-  }
-};
-
-onMounted(() => {
+onMounted(async () => {
   if (isLoggedIn.value) {
-    fetchPlans();
+    try {
+      const response = await axios.get(`http://localhost:3000/getPlans`);
+      plans.value = response.data.plans;
+    } catch (error) {
+      console.error("Greška pri dohvaćanju planova:", error);
+    }
   }
 });
 
@@ -102,32 +95,15 @@ const handleLogin = async () => {
       password: password.value,
     });
 
-    if (response.data.message === "Login successful!") {
+    if (response.data.message === "Prijava uspješna!") {
       user.value = response.data.user;
       $q.localStorage.setItem("loggedInUser", JSON.stringify(response.data.user));
       isLoggedIn.value = true;
 
-      // Save role to localStorage
-      $q.localStorage.setItem("role", response.data.user.role);
-
-      // Redirect based on user role
-      if (response.data.user.role === "Admin") {
-        window.location.href = "/admin"; // Redirect to admin page
-      } else {
-        window.location.href = "/plans"; // Redirect to user dashboard
-      }
-
-      // Dohvati sve planove
-      await fetchPlans();
-
-      // Dohvati odabrani plan korisnika
-      const userPlanResponse = await axios.get(
-        `http://localhost:3000/getUserPlan/${response.data.user.id}`
-      );
-      if (userPlanResponse.data.plan_id) {
-        selectedPlan.value = plans.value.find(
-          (plan) => plan.id === userPlanResponse.data.plan_id
-        );
+      // Dohvati odabrani plan prilikom prijave
+      const userPlanResponse = await axios.get(`http://localhost:3000/getUserPlan/${response.data.user.id}`);
+      if (userPlanResponse.data.plan) {
+        selectedPlan.value = userPlanResponse.data.plan;
       }
 
       // Reset forme
@@ -144,20 +120,13 @@ const handleLogin = async () => {
 const saveSelectedPlan = async () => {
   if (selectedPlan.value) {
     try {
-      await axios.post("http://localhost:3000/savePlan", {
+      await axios.post("http://localhost:3000/updateUserPlan", {
         userId: user.value.id,
-        planId: selectedPlan.value,
+        planName: selectedPlan.value,
       });
-      $q.notify({
-        type: "positive",
-        message: "Plan uspješno spremljen!",
-      });
+      alert("Plan uspješno spremljen!");
     } catch (error) {
       console.error("Greška pri spremanju plana:", error);
-      $q.notify({
-        type: "negative",
-        message: "Greška pri spremanju plana!",
-      });
     }
   }
 };
@@ -167,12 +136,11 @@ const logout = () => {
   user.value = null;
   isLoggedIn.value = false;
   $q.localStorage.removeItem("loggedInUser");
-  window.location.href = "/login"; // Redirect to login page
 };
 </script>
 
 <style scoped>
 h1 {
-  color: #1976d2;
+  color: #66cb44;
 }
 </style>

@@ -14,6 +14,6 @@
 
 <style scoped>
 h1 {
-  color: #1976d2;
+  color: #66cb44;
 }
 </style>
