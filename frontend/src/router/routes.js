@@ -11,12 +11,18 @@ const routes = [
       { path: "login", component: () => import("pages/Login.vue") },
       { path: "signup", component: () => import("pages/SignUp.vue") },
       { path: "news", component: () => import("pages/News.vue") },
-      { path: "plans", component: () => import("pages/SelectedPlan.vue") }
+      { path: "plans", component: () => import("pages/SelectedPlan.vue") },
     ],
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
+  {
+    path: "/admin",
+    component: () => import("layouts/AdminLayout.vue"),
+    meta: { requiresAdmin: true }, // Route Guard for Admin
+    children: [
+      { path: "", component: () => import("pages/AdminDashboard.vue") },
+      { path: "manage-plans", component: () => import("pages/ManagePlans.vue") },
+    ],
+  },
   {
     path: "/:catchAll(.*)*",
     component: () => import("pages/ErrorNotFound.vue"),
@@ -24,3 +30,4 @@ const routes = [
 ];
 
 export default routes;
+
